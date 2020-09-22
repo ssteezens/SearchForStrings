@@ -1,61 +1,61 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Data.SqlTypes;
 using System.IO;
 using System.Linq;
+using CommandLine;
 
 namespace SearchForStringList
 {
+    class Options
+    {
+        [Option("searchDirectory", Required = false, HelpText = "The path of the directory to search for key words in")]
+        public string SearchDirectory { get; set; }
+
+        [Option("keywordFile", Required = false, HelpText = "The file containing the newline separated list of key words to search for.")]
+        public string KeywordFile { get; set; }
+    }
+
     class Program
     {
         static void Main(string[] args)
         {
-            var searchDirectory = string.Empty;
-            var keyWordFile = string.Empty;
+            Parser.Default.ParseArguments<Options>(args)
+                .WithParsed(RunOptions)
+                .WithNotParsed(HandleParseErrors);
+        }
 
-            var arguments = ReadArguments(args);
-
-            if (arguments.ContainsKey("searchDirectory"))
-                searchDirectory = arguments["searchDirectory"];
-            else
+        static void RunOptions(Options options)
+        {
+            if (string.IsNullOrEmpty(options.SearchDirectory))
             {
+                Console.WriteLine("searchDirectory argument not specified");
                 Console.WriteLine("Please enter the search directory path: ");
-                searchDirectory = Console.ReadLine();
+                options.SearchDirectory = Console.ReadLine();
             }
-            if (arguments.ContainsKey("keywordFile"))
-                keyWordFile = arguments["keywordFile"];
-            else
-            {
+            if (string.IsNullOrEmpty(options.KeywordFile))
+            { 
+                Console.WriteLine("keywordFile argument not specified");
                 Console.WriteLine("Please enter the keyword file path: ");
-                keyWordFile = Console.ReadLine();
+                options.KeywordFile = Console.ReadLine();
             }
 
             Console.WriteLine("Searching for key words in directories");
 
-            var keyWords = File.ReadAllLines(keyWordFile);
+            var keyWords = File.ReadAllLines(options.KeywordFile);
 
             keyWords = keyWords.Where(i => !string.IsNullOrWhiteSpace(i)).ToArray();
 
-            SearchDirectory(searchDirectory, keyWords);
+            SearchDirectory(options.SearchDirectory, keyWords);
 
             Console.WriteLine("Press enter to quit.");
             Console.ReadLine();
         }
 
-        private static Dictionary<string, string> ReadArguments(string[] args)
+        static void HandleParseErrors(IEnumerable<Error> errs)
         {
-            var arguments = new Dictionary<string, string>();
 
-            foreach (string argument in args)
-            {
-                var keyValues = argument.Split('=');
-
-                if (keyValues.Length == 2)
-                {
-                    arguments[keyValues[0]] = keyValues[1];
-                }
-            }
-
-            return arguments;
         }
 
         private static void SearchDirectory(string directory, string[] searchWords)
